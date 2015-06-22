@@ -4,6 +4,14 @@
 		_wpcf7 = {};
 
 	_wpcf7 = $.extend({ cached: 0 }, _wpcf7);
+	
+	var progressbox  = $('#progressbox');
+	var progressbar  = $('#progressbar');
+	var statustxt    = $('#statustxt');
+	var submitbutton = $(".wpcf7-submit");
+	var myform       = $(".wpcf7-form");
+	var output2      = $("#output2");
+	var completed    = '0%';
 
 	$(function() {
 		_wpcf7.supportHtml5 = $.wpcf7SupportHtml5();
@@ -16,8 +24,30 @@
 				$form.wpcf7ClearResponseOutput();
 				$form.find('[aria-invalid]').attr('aria-invalid', 'false');
 				$form.find('img.ajax-loader').css({ visibility: 'visible' });
+				
+				// added by Jan (jan-danielewicz.xn.pl)
+				submitbutton.attr('disabled', ''); // disable upload button
+				statustxt.empty();
+				progressbox.slideDown(); //show progressbar
+				progressbar.width(completed); //initial value 0% of progressbar
+				statustxt.html(completed); //set status text
+				statustxt.css('color','#000'); //initial color of status text
+				//end
+				
 				return true;
 			},
+			
+			// added by Jan (jan-danielewicz.xn.pl)
+			uploadProgress: function(event, position, total, percentComplete) { //on progress
+			    progressbar.width(percentComplete + '%') //update progressbar percent complete
+			    statustxt.html(percentComplete + '%'); //update status text
+
+			    if (percentComplete > 50) {
+			        statustxt.css('color', '#fff'); //change status text to white after 50%
+			    }
+			},
+			//end
+			
 			beforeSerialize: function($form, options) {
 				$form.find('[placeholder].placeheld').each(function(i, n) {
 					$(n).val('');
@@ -80,6 +110,13 @@
 	$.wpcf7AjaxSuccess = function(data, status, xhr, $form) {
 		if (! $.isPlainObject(data) || $.isEmptyObject(data))
 			return;
+			
+		// added by Jan
+		output2.html(data.message); //update element with received data
+		myform.resetForm();  // reset form
+		submitbutton.removeAttr('disabled'); //enable submit button
+		progressbox.fadeOut(); // hide progressbar
+		//end
 
 		var $responseOutput = $form.find('div.wpcf7-response-output');
 
