@@ -334,6 +334,8 @@ class WPCF7_ContactForm {
 		if ( ! $this->responses_count ) {
 			$html .= $this->form_response_output();
 		}
+		
+		$html .= '<div id="progressbox"><div id="progressbar"></div><div id="statustxt">0%</div></div><div id="output2"></div>';
 
 		$html .= '</form>';
 		$html .= '</div>';
