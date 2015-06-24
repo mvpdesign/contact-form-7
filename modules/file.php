@@ -155,25 +155,57 @@ function wpcf7_file_validation_filter( $result, $tag ) {
 		return $result;
 	}
 
-	wpcf7_init_uploads(); // Confirm upload dir
-	$uploads_dir = wpcf7_upload_tmp_dir();
-	$uploads_dir = wpcf7_maybe_add_random_dir( $uploads_dir );
+	// wpcf7_init_uploads(); // Confirm upload dir
+	// $uploads_dir = wpcf7_upload_tmp_dir();
+	// $uploads_dir = wpcf7_maybe_add_random_dir( $uploads_dir );
 
-	$filename = $file['name'];
-	$filename = wpcf7_canonicalize( $filename );
-	$filename = sanitize_file_name( $filename );
-	$filename = wpcf7_antiscript_file_name( $filename );
-	$filename = wp_unique_filename( $uploads_dir, $filename );
+	// $filename = $file['name'];
+	// $filename = wpcf7_canonicalize( $filename );
+	// $filename = sanitize_file_name( $filename );
+	// $filename = wpcf7_antiscript_file_name( $filename );
+	// $filename = wp_unique_filename( $uploads_dir, $filename );
 
-	$new_file = trailingslashit( $uploads_dir ) . $filename;
+	// $new_file = trailingslashit( $uploads_dir ) . $filename;
 
-	if ( false === @move_uploaded_file( $file['tmp_name'], $new_file ) ) {
-		$result->invalidate( $tag, wpcf7_get_message( 'upload_failed' ) );
-		return $result;
-	}
+	// if ( false === @move_uploaded_file( $file['tmp_name'], $new_file ) ) {
+	// 	$result->invalidate( $tag, wpcf7_get_message( 'upload_failed' ) );
+	// 	return $result;
+	// }
 
 	// Make sure the uploaded file is only readable for the owner process
-	@chmod( $new_file, 0400 );
+	// @chmod( $new_file, 0400 );
+	
+		if ( ! function_exists( 'wp_handle_upload' ) ) {
+		require_once( ABSPATH . 'wp-admin/includes/file.php' );
+	}
+
+	$upload_overrides = array( 'test_form' => false, 'action' => 'wp_handle_upload' );
+	$movefile = wp_handle_upload( $_FILES[$name], $upload_overrides );
+
+	if ( $movefile ) {
+	    $wp_filetype = $movefile['type'];
+	    $filename = $movefile['file'];
+
+	    $wp_upload_dir = wp_upload_dir();
+
+	    $attachment = array(
+	        'guid' => $wp_upload_dir['url'] . '/' . basename( $filename ),
+	        'post_mime_type' => $wp_filetype,
+	        'post_title' => preg_replace('/\.[^.]+$/', '', basename($filename)),
+	        'post_content' => '',
+	        'post_status' => 'inherit'
+	    );
+
+		// Insert the attachment.
+		$attach_id = wp_insert_attachment( $attachment, $filename );
+
+		// Make sure that this file is included, as wp_generate_attachment_metadata() depends on it.
+		require_once( ABSPATH . 'wp-admin/includes/image.php' );
+
+		// Generate the metadata for the attachment, and update the database record.
+		$attach_data = wp_generate_attachment_metadata( $attach_id, $filename );
+		wp_update_attachment_metadata( $attach_id, $attach_data );
+	}
 
 	if ( $submission = WPCF7_Submission::get_instance() ) {
 		$submission->add_uploaded_file( $name, $new_file );
